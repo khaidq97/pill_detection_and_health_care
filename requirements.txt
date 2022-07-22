@@ -1,0 +1,4 @@
+pytorch
+torchvision
+opencv-contrib-python
+python-decouple
