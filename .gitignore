@@ -5,7 +5,7 @@
 /develop
 **/*.swp
 **/*.pyc
-**/*.sh
+# **/*.sh
 **/*.tar.gz
 /logs
 /my_utils
@@ -14,9 +14,9 @@
 /document
 /models
 /out
-/scripts
-/tools
+# /scripts
+# /tools
 **/*.pt 
 **/*.pth
-/TRAIN
-**/*.ipynb
+# /TRAIN
+# **/*.ipynb
