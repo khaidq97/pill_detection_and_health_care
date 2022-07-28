@@ -5,11 +5,12 @@ import json
 
 from tqdm import tqdm
 import cv2
+from Levenshtein import ratio as lev_ratio
 
 from ...utils.utils import remove_accents, find_in_line_boxes
 
 class RuleBaseFieldClassifier():
-    def __init__(self):
+    def __init__(self, mapping_drug_name_path):
         # all class: other, diagnose, drugname, usage, quantity, date
         self.usage_pattern = re.compile(r'(sang|chieu|toi|trua)\s*[0-9]+.*(vien)*$')
         self.usage_2_pattern = re.compile(r'uong:*\s*.*[0-9]+.*')
@@ -23,6 +24,8 @@ class RuleBaseFieldClassifier():
         self.ommited_pattern = re.compile(r'thuoc\s*dieu\s*tri.*')
         self.thresh_y_diff_1 = 10
         self.thresh_y_diff_2 = 10
+        self.thresh_text_similarity = 0.8
+        self.mapping_drug_name_path = mapping_drug_name_path
     
     def classify(self, text_list, text_box_list, have_returned_json=False):
         label_list = []
@@ -32,8 +35,12 @@ class RuleBaseFieldClassifier():
             text_box = text_box_list[i]
             transformed_text = remove_accents(text)
             transformed_text = transformed_text.strip()
-            if re.match(self.drug_name_pattern, transformed_text) or \
-                re.match(self.drug_name_2_pattern, transformed_text):
+            # if re.match(self.drug_name_pattern, transformed_text) or \
+            #     re.match(self.drug_name_2_pattern, transformed_text):
+            #     label_list.append('drugname')
+            #     if first_drugname_idx is None:
+            #         first_drugname_idx = i
+            if self.is_drug_name(text):
                 label_list.append('drugname')
                 if first_drugname_idx is None:
                     first_drugname_idx = i
@@ -89,8 +96,7 @@ class RuleBaseFieldClassifier():
         json_obj = []
         i = 1
         for text, box, label in zip(text_list, text_box_list, label_list):
-            bbox = [box['x1'], box['y1'], box['x2'], box['y2']]
-            dict_obj = {"id": i, "text": text, "label": label, "box": bbox}
+            dict_obj = {"id": i, "text": text, "label": label, "box": box}
             json_obj.append(dict_obj)
             i += 1
         
@@ -127,3 +133,45 @@ class RuleBaseFieldClassifier():
             if correct: total_correct += 1
         acc = total_correct/len(json_path)
         return acc
+    
+    def is_drug_name(self, text):
+        with open(self.mapping_drug_name_path) as f:
+            mapping_dict = json.load(f)
+        drugname_list = mapping_dict.keys()
+        text = text.strip()
+        best_similarity = 0
+        best_similarity_name = None
+        for drug_name in drugname_list:
+            similarity = lev_ratio(text, drug_name)
+            if (similarity > best_similarity) and (similarity >= self.thresh_text_similarity):
+                best_similarity = similarity
+                best_similarity_name = drug_name
+        if best_similarity_name:
+            return True
+        
+        return False
+    
+    def map_ocr_results2id_drug(self, ocr_results, text_box_list):
+        result_list = []
+        with open(self.mapping_drug_name_path) as f:
+            mapping_dict = json.load(f)
+        drugname_list = mapping_dict.keys()
+        for i, text in enumerate(ocr_results):
+            text = text.strip()
+            best_similarity = 0
+            best_similarity_name = None
+            for drug_name in drugname_list:
+                similarity = lev_ratio(text, drug_name)
+                if (similarity > best_similarity) and (similarity >= self.thresh_text_similarity):
+                    best_similarity = similarity
+                    best_similarity_name = drug_name
+            if best_similarity_name:
+                id_list = mapping_dict[best_similarity_name]
+                id_list = [int(idx) for idx in id_list]
+                
+                text_info = {"id": id_list, "text": text, "label": "drugname", 
+                             "drug_name": best_similarity_name, "box":text_box_list[i]}
+                
+                result_list.append(text_info)
+        
+        return result_list

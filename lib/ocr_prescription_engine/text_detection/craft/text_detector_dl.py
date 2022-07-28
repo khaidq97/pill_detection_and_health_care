@@ -71,6 +71,7 @@ class TextDetector:
         #     box["x2"] = int(box["x2"]*ratio)
         #     box["y2"] = int(box["y2"]*ratio)
         # text_boxes = self.refactor_text_boxes(text_boxes)
+        text_boxes = [[text_box['x1'], text_box['y1'], text_box['x2'], text_box['y2']] for text_box in text_boxes]
         return text_boxes
 
     def refactor_text_boxes(self, text_boxes):
