@@ -5,7 +5,6 @@ import random
 from PIL import Image, ExifTags
 from tqdm import tqdm
 from pathlib import Path
-from collections import defaultdict
 
 
 for orientation in ExifTags.TAGS.keys():
@@ -35,35 +34,31 @@ def copy_img_label(imgfile, imgdest):
     img = Image.open(str(imgfile))
     w,h = exif_size(img)
     with open(str(labelfile)) as f:
-        data = json.load(f)
+        dataset = json.load(f)
     file = open(str(labeldest), 'w')
-    for box in data:
-        label = box['label']
-        x_mid = (box["x"]/w + box["x"]/w + box["w"]/w)/2
-        y_mid = (box["y"]/h + box["y"]/h + box["h"]/h)/2
-        w_norm = box["w"]/w
-        h_norm = box["h"]/h
-        file.write(f'{label} {x_mid} {y_mid} {w_norm} {h_norm}\n')
+    for data in dataset:
+        label = data['label']
+        if label in ('drugname', 'diagnose'):
+            lb = 0 if label == 'drugname' else 1
+            box = data['box']
+            x_mid = (box[0] + box[2]) / (2*w)
+            y_mid = (box[1] + box[3]) / (2*h)
+            w_norm = (box[2] - box[0]) / w 
+            h_norm = (box[3] - box[1]) / h
+            file.write(f'{lb} {x_mid} {y_mid} {w_norm} {h_norm}\n')
+            # file.write("{} {} {} {} {}\n".format(lb, x_mid, y_mid, w_norm, h_norm))
     file.close()
 
 
+#===============================================================================================#
+DATA_FOLDER = Path('document/dataset/public_train/prescription')
+SAVE_FOLDER = Path('document/output/pres_yolo')
+ratio = 0.9
 
-#=================================================================================#
-DATA_FOLDER = Path('/home/khai/Desktop/VAIPE/dataset/public_train/pill/image')
-SAVE_FOLDER = Path('/home/khai/Desktop/VAIPE/ai4vn-vaipe-baseline/data/ai4vn')
-
-#================================================================================#
+random.seed(24)
+#===============================================================================================#
 if os.path.exists(str(SAVE_FOLDER)): shutil.rmtree(str(SAVE_FOLDER))
 os.makedirs(str(SAVE_FOLDER))
-
-dataset = defaultdict(list)
-for imgfile in DATA_FOLDER.rglob('*'):
-    if imgfile.suffix not in ('.jpg', '.png'): continue
-    name = imgfile.name
-
-    pres = '_'.join(name.split('_')[:-1])
-    dataset[pres].append(imgfile)
-# print(dataset)
 
 IMAGE_TRAIN_FOLDER = SAVE_FOLDER / 'images' / 'train'
 LABEL_TRAIN_FOLDER = SAVE_FOLDER / 'labels' / 'train'
@@ -74,21 +69,21 @@ os.makedirs(str(LABEL_TRAIN_FOLDER))
 os.makedirs(str(IMAGE_VAL_FOLDER))
 os.makedirs(str(LABEL_VAL_FOLDER))
 
-ratio = 0.8
-random.seed(24)
-# Train
-for key, imgfiles in tqdm(dataset.items()):
-    random.shuffle(imgfiles)
-    n_train = int(ratio * len(imgfiles))
+imfiles = [x for x in DATA_FOLDER.rglob('*') if x.suffix in ('.jpg', '.png')]
+random.shuffle(imfiles)
 
-    # Train
-    for imgfile in imgfiles[:n_train]:
-        imgdest = IMAGE_TRAIN_FOLDER / imgfile.name
-        copy_img_label(imgfile, imgdest)
-    
-    # Val
-    for imgfile in imgfiles[n_train:]:
-        imgdest = IMAGE_VAL_FOLDER / imgfile.name
-        copy_img_label(imgfile, imgdest)
+n_train = int(ratio * len(imfiles))
+# Train
+print('TRAIN:')
+for imfile in tqdm(imfiles[:n_train]):
+    imdest = IMAGE_TRAIN_FOLDER / imfile.name
+    copy_img_label(imfile, imdest)
+
+# val
+print('VAL:')
+for imfile in tqdm(imfiles[n_train:]):
+    imdest = IMAGE_VAL_FOLDER / imfile.name
+    copy_img_label(imfile, imdest)
+
 
 

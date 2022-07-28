@@ -18,5 +18,5 @@
 # /tools
 **/*.pt 
 **/*.pth
-# /TRAIN
+/TRAIN
 # **/*.ipynb
