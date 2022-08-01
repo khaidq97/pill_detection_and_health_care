@@ -27,7 +27,7 @@ class RuleBaseFieldClassifier():
         self.thresh_text_similarity = 0.8
         self.mapping_drug_name_path = mapping_drug_name_path
     
-    def classify(self, text_list, text_box_list, have_returned_json=False):
+    def classify(self, text_list, text_box_list, json_path=None, have_returned_json=False):
         label_list = []
         first_diagnose_idx = None
         first_drugname_idx = None
@@ -92,11 +92,29 @@ class RuleBaseFieldClassifier():
     def export_json(self, json_name, save_root, text_list, text_box_list_label_list):
         pass
     
-    def convert_json_format(self, text_list, text_box_list, label_list):
+    def convert_json_format(self, text_list, text_box_list, label_list, json_path=None):
+        gt_drugnames = []
+        gt_mapping = []
+        if json_path:
+            with open(json_path, 'r') as f:
+                json_obj = json.load(f)
+            for element in json_obj:
+                if element["label"] == "drugname":
+                    gt_drugnames.append(element["text"])
+                    gt_mapping.append(element["mapping"])
         json_obj = []
         i = 1
         for text, box, label in zip(text_list, text_box_list, label_list):
-            dict_obj = {"id": i, "text": text, "label": label, "box": box}
+            if label == "drugname":
+                if not json_path:
+                    mapping_id_list = self.text2IDdrug(text)
+                    dict_obj = {"id": i, "text": text, "label": label, "box": box, "mapping": mapping_id_list}
+                else:
+                    best_match_gt_id = self.get_best_similarity(text, gt_drugnames)
+                    mapping = gt_mapping[best_match_gt_id]
+                    dict_obj = {"id": i, "text": text, "label": label, "box": box, "mapping": mapping}
+            else:
+                dict_obj = {"id": i, "text": text, "label": label, "box": box}
             json_obj.append(dict_obj)
             i += 1
         
@@ -150,6 +168,34 @@ class RuleBaseFieldClassifier():
             return True
         
         return False
+    
+    def get_best_similarity(self, text, gt_text_list, thresh_text_similarity=0.8):
+        best_similar_id = None
+        best_similarity = 0
+        for i, gt_text in enumerate(gt_text_list):
+            similarity = lev_ratio(text, gt_text)
+            if similarity > best_similarity:
+                best_similarity = similarity
+                best_similar_id = i
+        return best_similar_id
+    
+    def text2IDdrug(self, text, thresh_text_similarity=0.8):
+        with open(self.mapping_drug_name_path) as f:
+            mapping_dict = json.load(f)
+        id_list = None
+        drugname_list = mapping_dict.keys()
+        text = text.strip()
+        best_similarity = 0
+        best_similarity_name = None
+        for drug_name in drugname_list:
+            similarity = lev_ratio(text, drug_name)
+            if (similarity > best_similarity) and (similarity >= thresh_text_similarity):
+                best_similarity = similarity
+                best_similarity_name = drug_name
+        if best_similarity_name:
+            id_list = mapping_dict[best_similarity_name]
+            id_list = [int(idx) for idx in id_list]     
+        return id_list
     
     def map_ocr_results2id_drug(self, ocr_results, text_box_list):
         result_list = []

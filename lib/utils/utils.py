@@ -1,6 +1,13 @@
+import os
+import glob
 import json
 import random
+import re
+
 import cv2
+from tqdm import tqdm
+
+from Levenshtein import ratio as lev_ratio
 
 def read_json_file(jsonfile):
     with open(str(jsonfile)) as f:
@@ -62,3 +69,77 @@ def find_in_line_boxes(box1, box_list, thresh_y_diff_1, thresh_y_diff_2):
 
     return in_line_boxes, in_line_indexes
 
+def text2IDdrug(text, mapping_dict, thresh_text_similarity=0.8):
+    id_list = None
+    drugname_list = mapping_dict.keys()
+    text = text.strip()
+    best_similarity = 0
+    best_similarity_name = None
+    for drug_name in drugname_list:
+        similarity = lev_ratio(text, drug_name)
+        if (similarity > best_similarity) and (similarity >= thresh_text_similarity):
+            best_similarity = similarity
+            best_similarity_name = drug_name
+    if best_similarity_name:
+        id_list = mapping_dict[best_similarity_name]
+        id_list = [int(idx) for idx in id_list]     
+    return id_list
+
+def get_diagnose_from_json(json_path):
+    diagnose_text_list = []
+    with open(json_path, 'r') as f:
+        json_obj = json.load(f)
+        for element in json_obj:
+            if element["label"] == "diagnose":
+                diagnose_text_list.append(element["text"])
+    output_diagnose_text = ' '.join(diagnose_text_list)
+    return output_diagnose_text
+
+def get_splitted_diagnose_name(diagnose_text):
+    no_accent_diagnose_text = remove_accents(diagnose_text)
+    no_accent_diagnose_text = no_accent_diagnose_text.lower()
+    split_diagnose_pattern = r'(;|:)\s+'
+    diagnose_list = re.split(split_diagnose_pattern, no_accent_diagnose_text)
+    diagnose_list = [text.strip().replace("chan doan", "") for text in diagnose_list]
+    diagnose_list = [text for text in diagnose_list if (text != '' and text != ':' and text != ';')]
+    return diagnose_list
+
+def classify_diagnose(diagnose_list, save_path=None, similarity_thresh=0.8):
+    classification_result = {}
+    max_key = 0
+    for diagnose_text in diagnose_list:
+        if len(classification_result.keys()) == 0:
+            classification_result[0] = [diagnose_text]
+        else:
+            match_flag = False
+            for key in classification_result:
+                if lev_ratio(classification_result[key][0], diagnose_text) >= similarity_thresh:
+                    classification_result[key].append(diagnose_text)
+                    match_flag = True
+                    break
+                
+            if not match_flag:
+                max_key += 1
+                classification_result[max_key] = [diagnose_text]
+    if save_path:
+        with(open(save_path, 'w')) as f:
+            json.dump(classification_result, f, indent=2)
+    return classification_result
+
+def get_all_diagnose_texts(json_root):
+    diagnose_list = []
+    json_paths = glob.glob(os.path.join(json_root, "*.json"))
+    for json_path in tqdm(json_paths):
+        diagnose_text = get_diagnose_from_json(json_path)
+        split_diagnose_list = get_splitted_diagnose_name(diagnose_text)
+        diagnose_list.extend(split_diagnose_list)
+    
+    return diagnose_list
+        
+if __name__ == '__main__':
+    json_root = '/media/case.kso@kaopiz.local/New Volume/hiennt/pill_detection/public_train/prescription/label'
+    diagnose_list = get_all_diagnose_texts(json_root)
+    print(diagnose_list)
+    save_path = '/media/case.kso@kaopiz.local/New Volume/hiennt/pill_detection/public_train/prescription/diagnose_classification.json'
+    classification_result = classify_diagnose(diagnose_list, save_path)
+        
