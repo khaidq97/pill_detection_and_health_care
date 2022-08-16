@@ -1,0 +1,293 @@
+from pydoc import doc
+import pandas as pd
+import numpy as np
+import os
+import json
+import re
+from sklearn.preprocessing import MinMaxScaler
+from difflib import SequenceMatcher
+
+
+def load_json(file_path):
+    with open(file_path, "r") as f:
+        data = json.load(f)
+        
+    return data
+
+def processing_drugname(drugname):
+    drugnames = drugname.split("[SEP]")
+    drugname = [i[3:] for i in drugnames]
+    return "[SEP]".join(drugname)
+
+def processing_diagnose(diagnose):
+    if type(diagnose) is str:
+        # diagnose = diagnose[2:-2]
+        diagnose = diagnose.replace("\n", " ")
+        diagnose = diagnose.replace("Chấn đoán: ", "")
+        diagnose = diagnose.replace("Chẩn đoán: ", "")
+        diagnose = diagnose.replace("Chần đoán: ", "")
+        diagnose = diagnose.replace("mạchmáu", "mạch máu")
+        diagnose = diagnose.replace("Hộichứng", "Hội chứng")
+        diagnose = diagnose.replace("trùngvà", "trùng và")
+        diagnose = diagnose.replace("cơđịa", "cơ địa")
+        diagnose = diagnose.replace("vaitrái", "vai trái")
+        diagnose = diagnose.replace("khôngphân", "không phân")
+        diagnose = diagnose.replace("thươngnông", "thương nông")
+        diagnose = diagnose.replace("chuyểnhoá", "chuyển hoá")
+        diagnose = diagnose.replace("đóiViêm", "đói Viêm")
+        diagnose = diagnose.replace("nguyênnhân", "nguyên nhân")
+        diagnose = diagnose.replace("bệnhmạch", "bệnh mạch")
+        diagnose = diagnose.replace("nãotrong", "não trong")
+        diagnose = diagnose.replace("mạchnão", "mạch não")
+        diagnose = diagnose.replace("Tràndịch", "Tràn dịch")
+        diagnose = diagnose.replace("đặchiệu", "đặc hiệu")
+        diagnose = diagnose.replace("khớpvà", "khớp và")
+        diagnose = diagnose.replace("môdưới", "mô dưới")
+        diagnose = diagnose.replace("hóalipoprotein", "hóa lipoprotein")
+        diagnose = diagnose.replace("(nguyênphát)", "(nguyên phát)")
+        diagnose = diagnose.replace("Viêmhọng", "Viêm họng")
+        diagnose = diagnose.replace("dịứng", "dị ứng")
+        diagnose = diagnose.replace("môbào", "mô bào")
+        diagnose = diagnose.replace("chânT", "chân")
+        diagnose = diagnose.replace("do thiếu", "dothiếu")
+        diagnose = diagnose.replace("máunão", "máu não")
+        diagnose = diagnose.replace("mềmvùng", "mềm vùng")
+        diagnose = diagnose.replace("trongbệnh", "trong bệnh")
+        diagnose = diagnose.replace("vàđau", "và đau")
+        diagnose = diagnose.replace("(N18)Suy", "(N18) Suy")
+        diagnose = diagnose.replace("xácđịnh", "xác định")
+        diagnose = diagnose.replace("ÁnChân", "Án Chân") #khôngphụ
+        diagnose = diagnose.replace("khôngphụ", "không phụ") #khôngphụ
+        diagnose = diagnose.replace("-", "") #khôngphụ
+        diagnose = diagnose.replace(";", " </s>")
+        diagnose = diagnose.replace(":", " </s>")
+        return diagnose.strip()
+    else:
+        return diagnose
+
+def preprocessing_dataframe(df):
+    # df = df[df["id"]!=107]
+    # df.rename(columns = {'diagnoise':'diagnose'}, inplace = True)
+    
+    # pres_name_list = []
+    # for image_name in df['image_name'].values:
+    #     pres_name = image_name.split("_")[0] + "_P_TRAIN_"+ image_name.split("_")[2] + ".png"
+    #     pres_name_list.append(pres_name)
+    # df["prescription_name"] = pres_name_list
+        
+    df["diagnose"] = df["diagnose"].apply(lambda x: processing_diagnose(x))
+    df["drugname"] = df["drugname"].apply(lambda x: processing_drugname(x))
+    # df["id"] = df["id"].apply(lambda x: processing_id(x))
+    # df["diagnose"] = df["diagnose"].fillna("empty")
+    # df["SL"] = df["SL"].fillna("empty")
+    
+    train_df = df[df['train/val']=="train"]
+    val_df = df[df['train/val']=="val"]
+    
+    return train_df, val_df, df
+
+def get_drugname_2_id(df):
+    id_2_drugname = {}
+    drugname_2_id = {}
+    drugnames_unique = []
+    for idx, drugname in enumerate(df["drugname"].unique()):
+        drugs = drugname.split("[SEP]")
+        drugnames_unique.extend(drugs)
+    for idx, drugname  in enumerate(np.unique(drugnames_unique)):
+        id_2_drugname[idx] = drugname
+        drugname_2_id[drugname] = idx
+        
+    return id_2_drugname, drugname_2_id
+
+def mapping_druname_to_label(df):
+    name2id = load_json("lib/classification_engine/mapping/name2id_v2.json")
+    encode_drugname_list = []
+    for drugnames in df['drugname'].values:
+        drugs = drugnames.split("[SEP]")
+        drugs_in_pres = []
+        for drug in drugs:
+            try:
+                drugs_in_pres.extend(name2id[drug])
+            except:
+                drugs_in_pres.append(108)
+        encode_drugname_list.append(' '.join(str(x) for x in drugs_in_pres))
+    df['prescription_mapping'] = encode_drugname_list
+
+    return df
+
+def encode_druname(df, max_len=5):
+    drug_name_list = load_json("lib/classification_engine/mapping/drugname_2_id.json")
+    encode_drugname_list = []
+    for drugnames in df['drugname'].values:
+        drugs = drugnames.split("[SEP]")
+        drugs_in_pres = []
+        for drug in drugs:
+            drugs_in_pres.append(int(drug_name_list[drug]))
+        padding_len = max_len - len(drugs_in_pres)
+        drugs_in_pres = drugs_in_pres + [0] * padding_len
+        drugs_in_pres = np.array(drugs_in_pres) / 142
+        encode_drugname_list.append(' '.join(str(x) for x in drugs_in_pres))
+        # encode_drugname_list.append(drugs_in_pres)
+    
+    df["encode_drugname"] = encode_drugname_list
+    
+    return df
+
+def get_usage_each(text):
+    out = []
+    rule = r"\[.*?\]"
+    matches = re.compile(rule)
+    print("matches", matches)
+    print("text", text)
+    for match in re.finditer(matches, text):
+        out.append(match.group())
+    return out
+
+def encode_usage(df, max_len=5):
+    encode_usage_list = []
+    for usage in df['usage'].values:
+        usage = usage[1:-1]
+        print(usage)
+        usage_list = get_usage_each(usage)
+        
+        usage_list_drug = []
+        for i, u in enumerate(usage_list):
+            u = u[1:-1].replace("'","").split(", ")
+            if u[0]=="":
+                u = "empty"
+            else: 
+                u = ", ".join(u)
+            usage_list_drug.append(u)
+        usage_list_drug = "[SEP]".join(usage_list_drug)
+        encode_usage_list.append(usage_list_drug)
+        
+    df["usage"] = encode_usage_list
+    
+    return df
+
+def encode_quantity(df, max_len=5):
+    encode_quantity_list = []
+    for drugnames in df['SL'].values:
+        drugs = drugnames.split("[SEP]")
+        drugs_in_pres = []
+        for drug in drugs:
+            match = re.search(r"\d.?", drug)
+            if match:
+                number = match.group()
+                drugs_in_pres.append(int(number))
+            else:
+                drugs_in_pres.append(0)
+        padding_len = max_len - len(drugs_in_pres)
+        drugs_in_pres = drugs_in_pres + [0] * padding_len
+        drugs_in_pres = np.array(drugs_in_pres) / 100
+        encode_quantity_list.append(' '.join(str(x) for x in drugs_in_pres))
+        # break
+    df["encode_quantity"] = encode_quantity_list
+    # print(df["encode_quantity"])
+    return df
+
+
+def get_dotorname_2_id(df):
+    doctor_2_id = {}
+    for idx, doctor in enumerate(df["doctor"].unique()):
+        if "BS. "in doctor or "YS. " in doctor:
+            doctor_2_id[doctor] = idx+1
+        
+    return doctor_2_id
+
+def encode_doctor(df):
+    doctor_2_id = load_json("lib/classification_engine/mapping/doctor_2_id.json")
+    # print(doctor_2_id)
+    encode_doctor_list = []
+    for doctor in df["doctor"].values:
+        if doctor in doctor_2_id.keys():
+            encode_doctor_list.append(doctor_2_id[doctor])
+        else:
+            encode_doctor_list.append(0)
+            
+        
+    df["encode_doctor"] = np.array(encode_doctor_list) / 69
+
+    return df
+
+
+def encode_date(df):
+    day_list, month_list, year_list = [], [], []
+    
+    for date in df["date"].values:
+        rule = r"\d{2}\/\d{2}\/\d{4}"
+        match = re.search(rule, date)
+        if match:
+            date = match.group()
+            day_list.append(date.split("/")[0])
+            month_list.append(date.split("/")[1])
+            year_list.append(date.split("/")[2])
+        else:
+            date = "empty"
+            day_list.append(0)
+            month_list.append(0)
+            year_list.append(0)
+            
+    # df["day"] = np.array(day_list) / 31
+    # df["month"] = np.array(month_list) / 12
+    # df["year"] = np.array(year_list) / 2022
+    df["day"] = np.array(day_list)
+    df["month"] = np.array(month_list)
+    df["year"] = np.array(year_list) 
+
+    return df
+
+
+def similar(a, b):
+    return SequenceMatcher(None, a, b).ratio()
+
+def correct_diagnose_id(id):
+    diagnose_2_id = load_json("diagnose_2_id.json")
+    diagnose_ids = diagnose_2_id.keys()
+    max = 0
+    max_diagnose_id = "None"
+    for i, diagnose_id in enumerate(diagnose_ids):
+        score = similar(id, diagnose_id)
+        if score > max:
+            max = score
+            max_diagnose_id = diagnose_id
+    
+    return max_diagnose_id
+
+def encode_diagnose(df):
+    encode_diagnose_list = []
+    for diagnose in df["diagnose"].values:
+        ids = diagnose.split("</s>")
+        id_list = []
+        for id in ids:
+            id = id.split()[0]
+            id = correct_diagnose_id(id)
+            id_list.append(id)
+        id_list = "_".join(id_list)
+        encode_diagnose_list.append(id_list)
+        
+    df["encode_diagnose"] = encode_diagnose_list
+    out = df[["image_name","encode_diagnose"]] 
+    out.to_csv("test.csv", index=False)
+    return out
+
+def add_image_name(text):
+    return "VAIPE_P_TEST_"+str(text)
+    
+if __name__ == "__main__":
+    file_name = "public_test_cascade"
+    df = pd.read_csv(os.path.join("raw_csv", file_name+".csv"))
+        
+    df["diagnose"] = df["diagnose"].apply(lambda x: processing_diagnose(x))
+    df["drugname"] = df["drugname"].apply(lambda x: processing_drugname(x))
+    
+    df = encode_druname(df)
+    # df = encode_usage(df)
+    df = encode_quantity(df)
+    df = encode_doctor(df)
+    # df = encode_date(df)
+    mapping = mapping_druname_to_label(df)
+    df['prescription_mapping'] = mapping
+    
+    # df.to_csv(os.path.join("prescription_csv", file_name+"_encoded.csv"), index=False)
+    df.to_csv(os.path.join("classification_model", "pill_csv_v2", file_name+"_encoded.csv"), index=False)
