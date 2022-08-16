@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings('ignore')
 from decouple import Config, RepositoryEnv
 import sys
 import os 

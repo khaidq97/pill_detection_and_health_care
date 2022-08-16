@@ -508,7 +508,7 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
 
 #######################################################INFERNECE#############################################################
 # Coco128 -- 80 classes
-names_ = ['pill']
+names_ = ['drugname', 'diagnose']
     
 class YoloV5:
     def __init__(
