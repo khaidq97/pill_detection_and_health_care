@@ -29,7 +29,7 @@ if __name__ == "__main__":
         dataframe = pd.read_csv(os.path.join(root_dir, "processed_"+root_dir+".csv"))
 
     folder = os.path.join(root_dir, "test_cascade")
-    ckpt_dir = "trained_models/classification_module/swin_True_True_True_tiny_v1.pt"
+    ckpt_dir = "trained_models/classification_module/swin_True_True_False_tiny_v2.pt"
     device = torch.device("cpu")
     drugname_path = "lib/classification_engine/mapping/drugname_2_id.json"
     doctor_path = "lib/classification_engine/mapping/doctor_2_id.json"

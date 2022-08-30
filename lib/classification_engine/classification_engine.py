@@ -10,7 +10,7 @@ from .cls_module.utils import *
 num_classes = 107+1
 use_diagnose = True
 use_drugname = True
-use_additional = True
+use_additional = False
 backbone = "swin"
 BERT_MODEL = "vinai/phobert-base"     
 
