@@ -14,9 +14,9 @@ from lib.controller import Controller
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root', help='The path to dataset dir', type=str,
-                        default=None)
-parser.add_argument('--save_dir', help='The path to save results', type=str,
-                        default=None)
+                        required=True)
+parser.add_argument('--save_dir', help='The path to save results', type=str, 
+                        required=True)
 cfg = parser.parse_args()
 
 

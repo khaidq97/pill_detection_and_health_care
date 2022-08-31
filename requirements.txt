@@ -2,3 +2,9 @@ pytorch
 torchvision
 opencv-contrib-python
 python-decouple
+mmcv-full
+mmcv==1.6.0
+terminaltables
+pythonRLSA
+imutils
+python-Levenshtein

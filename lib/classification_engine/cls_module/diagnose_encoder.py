@@ -36,10 +36,10 @@ class DiagnoseEncoder(nn.Module):
 
         h0 = torch.zeros(self.num_recurrent_layers * n,       # (L * 2 OR L, B, H)
                         input_ids.shape[0],
-                        self.lstm_units)
+                        self.lstm_units).to(sequence_output.device)
         c0 = torch.zeros(self.num_recurrent_layers * n,        # (L * 2 OR L, B, H)
                         input_ids.shape[0],
-                        self.lstm_units)
+                        self.lstm_units).to(sequence_output.device)
 
         sequence_output, _ = self.lstm(sequence_output, (h0, c0))
 
