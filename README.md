@@ -8,6 +8,6 @@ Download traned_models: https://drive.google.com/drive/folders/1NI8smomIFQBB3hpB
 Exit path in .env if need. 
 
 How to run:
-python run.py --root ../dataset/public_test_new --save_dir output
+ python run.py --root ../dataset/public_test_new --save_dir output
 
 After model run completely => take results.csv file in save_dir folder
