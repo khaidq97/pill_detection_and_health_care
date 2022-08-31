@@ -17,14 +17,14 @@ class Controller(object):
 
         print('\nRUNINIG ON BATCH MODE...')
         print('\nPill Detection state...')
-        # self.detectionEngine = detection_engine.DetectionEngine()
-        # self.detectionEngine.run_state(pill_image_path, pill_label_path)
-        # del self.detectionEngine
+        self.detectionEngine = detection_engine.DetectionEngine()
+        self.detectionEngine.run_state(pill_image_path, pill_label_path)
+        del self.detectionEngine
 
         print('\nOCR prescription state...')
-        # self.ocrpresEngine = ocr_prescription_engine.OCRPresciptionEngine()
-        # self.ocrpresEngine.run_state(pres_image_path, pres_label_path)
-        # del self.ocrpresEngine
+        self.ocrpresEngine = ocr_prescription_engine.OCRPresciptionEngine()
+        self.ocrpresEngine.run_state(pres_image_path, pres_label_path)
+        del self.ocrpresEngine
 
         print('\nClassification state...')
         print(f'Save at: {save_dir}/results.csv')
