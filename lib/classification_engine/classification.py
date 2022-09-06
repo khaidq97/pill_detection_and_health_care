@@ -51,16 +51,25 @@ class ClassificationEngine(object):
             quantity = dataframe["encode_quantity"].iloc[idx].split()
             prescription_mapping = dataframe["prescription_mapping"].iloc[idx].split()
             
-            pred_idx, prob = self.infer._run_classify(image_path=image_path, diagnose=diagnose, 
+            pred_idx, prob, pred_id_list, prob_list = self.infer._run_classify(image_path=image_path, diagnose=diagnose, 
                                                     drugnames=drug_names, bbox=bbox, doctor=doctor, 
                                                     quantity=quantity, device=self.device)
-            # if pred_idx==26 and len(drug_names)==1:
-            #     pred_idx = 25
+            
 
-            # if pred_idx == 28 and 'ALFACHIM 4,2mg' in drug_names and diagnose[:3] == 'S91':
-            #     pred_idx = 7
-                
-            if (not is_empty(except_108(prescription_mapping)) and pred_idx not in except_108(prescription_mapping)) or prob<0.3:
+            if pred_idx==107 and prob<0.6:
+                pred_idx = pred_id_list[1]
+                prob = prob_list[1]
+            # if pred_idx in [3,88,89,90,96,99] and len(drug_names)==1 and "MEDIPLEX 800mg" in drug_names:
+            #     pred_idx = 3
+            if pred_idx == 28 and 'ALFACHIM 4,2mg' in drug_names and 'S91' in diagnose:
+                pred_idx = 7
+            if pred_idx==26 and len(drug_names)==1 and "CEPHALEXIN 250MG 0,25g" in drug_names:
+                pred_idx = 25
+            if "DƯỠNG TÂM AN THẦN" in drug_names and pred_idx==107 and pred_id_list[1]==44:
+                pred_idx=44
+            if "Omeprazol (Kagasdine) 20mg" in drug_names and pred_idx==66:
+                pred_idx=87
+            if (not is_empty(except_108(prescription_mapping)) and pred_idx not in except_108(prescription_mapping)) or prob<0.0:
                 pred_idx = 107
                 prob = 1
                 
@@ -127,10 +136,14 @@ class Inference():
         with torch.no_grad():
             preds = self.model(image_input, diagnose_input, drugnames_input, bbox_input, doctor_input, quantity_input)
         
-        log_prob, idx = torch.max(preds, 1)
-        prob = torch.exp(log_prob).item()
+        # log_softmax   
+        log_prob_list, idx_list = torch.sort(preds, 1, descending=True)
+        prob_list = torch.exp(log_prob_list)
         
-        return idx.item() ,prob
+        log_prob, idx = torch.max(preds, 1)
+        prob = torch.exp(log_prob)
+        
+        return idx.item() ,prob.item(), idx_list[0].cpu().numpy(), prob_list[0].cpu().numpy()
         
     def _transform_image(self, image_path):
         image = cv2.imread(image_path)

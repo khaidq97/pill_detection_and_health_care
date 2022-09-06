@@ -60,7 +60,20 @@ def processing_diagnose(diagnose):
         diagnose = diagnose.replace("(N18)Suy", "(N18) Suy")
         diagnose = diagnose.replace("xácđịnh", "xác định")
         diagnose = diagnose.replace("ÁnChân", "Án Chân") #khôngphụ
-        diagnose = diagnose.replace("khôngphụ", "không phụ") #khôngphụ
+        diagnose = diagnose.replace("khôngphụ", "không phụ")
+        diagnose = diagnose.replace("phụthuộc", "phụthuộc")
+        diagnose = diagnose.replace("vàniệu", "và niệu")
+        diagnose = diagnose.replace("[10", "I10")
+        diagnose = diagnose.replace("110", "I10")
+        diagnose = diagnose.replace("JII", "J11")
+        diagnose = diagnose.replace("[31", "J31")
+        diagnose = diagnose.replace("Ell", "E11")
+        diagnose = diagnose.replace("[40", "(140)")
+        diagnose = diagnose.replace("[60", "J60")
+        diagnose = diagnose.replace("tìnhtrạng", "tình trạng")
+        diagnose = diagnose.replace("tỉnhtrạng", "tình trạng") #khôngđặc
+        diagnose = diagnose.replace("mềmngực", "mềm ngực")
+        diagnose = diagnose.replace("khôngđặc", "không đặc")
         diagnose = diagnose.replace("-", "") #khôngphụ
         diagnose = diagnose.replace(";", " </s>")
         diagnose = diagnose.replace(":", " </s>")
@@ -156,7 +169,7 @@ def padding_image(image, new_size=(320,320)):
     old_h, old_w, c = image.shape
     new_h, new_w= new_size
     
-    padding = np.full((new_h,new_w, c), (255,255,255), dtype=np.uint8)
+    padding = np.full((new_h,new_w, c), (0,0,0), dtype=np.uint8)
     # compute center offset
     if old_h < old_w:
         w = new_w 
