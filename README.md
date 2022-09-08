@@ -12,7 +12,7 @@ B3. Tạo docker image:
     vd: 
     docker build -t vaipe-the_challengers_team .
     
-B3. Tạo các volume: data (mount tới folder chứa dữ liệu test), output (folder lưu kết quả model sinh ra) 
+B4. Tạo các volume: data (mount tới folder chứa dữ liệu test), output (folder lưu kết quả model sinh ra) 
 
     docker volume create --opt device=[absolute path to test data on host device] --opt type=none --opt o=bind  output
     docker volume create --opt device=[absolute path to saved folder on host device] --opt type=none --opt o=bind  data
@@ -21,7 +21,7 @@ B3. Tạo các volume: data (mount tới folder chứa dữ liệu test), output
        docker volume create --opt device=/home/user/Desktop/output --opt type=none --opt o=bind  output
        docker volume create --opt device=/home/user/Desktop/VAIPE/document/dataset/public_test_new --opt type=none --opt o=bind  data
 
-B4. chạy container
+B5. chạy container
 
     docker run -it --name [container name] -v data:/app/data -v output:/app/output [image name]
     vd: docker run -it --name containter -v data:/app/data -v output:/app/output vaipe-the_challengers_team
