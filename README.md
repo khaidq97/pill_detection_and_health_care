@@ -2,9 +2,9 @@
 
 **1. Hướng dẫn test (inference)**
 
-B1. clone repo tại: **git@github.com:khaidoandk97/The_challengers_team_VAIPE.git** (nhánh master)
+B1. clone repo tại: ###git@github.com:khaidoandk97/The_challengers_team_VAIPE.git (nhánh master)
 
-B2. Tải folder "trained_models" tại **https://drive.google.com/drive/folders/1NI8smomIFQBB3hpBi6YuXAnpDsSwWq3h?usp=sharing** giải nén và đặt vào 
+B2. Tải folder "trained_models" tại **https://drive.google.com/file/d/1uOGQ_eLay1MYYzwj24JB7SX3pqawYkZO/view?usp=sharing** giải nén và đặt vào 
 
 WORKSPACE
 
