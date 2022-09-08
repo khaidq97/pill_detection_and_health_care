@@ -1,0 +1,24 @@
+.vscode/
+.idea/
+.pylintrc
+/venv
+/develop
+**/*.swp
+**/*.pyc
+# **/*.sh
+**/*.tar.gz
+/logs
+/my_utils
+/data
+/asset
+/document
+/models
+/out
+# /scripts
+# /tools
+**/*.pt 
+**/*.pth
+/TRAIN
+# **/*.ipynb
+**/*.json
+output
