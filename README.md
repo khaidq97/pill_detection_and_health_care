@@ -45,3 +45,5 @@ B3. classification engine.
 
     Model do nhóm tự thiết kế
     
+    train theo hướng dẫn trên nhánh "classification_engine": https://github.com/khaidoandk97/The_challengers_team_VAIPE/tree/classification_engine
+    
