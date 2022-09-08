@@ -1,9 +1,0 @@
-tqdm
-python-decouple
-vietocr
-python-Levenshtein
-imutils
-scikit-learn
-transformers
-terminaltables
-pycocotools
