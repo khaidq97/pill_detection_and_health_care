@@ -5,14 +5,25 @@ from pathlib import Path
 import torch
 from Levenshtein import ratio as lev_ratio
 
+# def map_pillname_to_presname(pill_pres_map):
+#     with open(str(pill_pres_map)) as f:
+#         data = json.load(f)
+#     mapping = {}
+#     for d in data:
+#         pres = d['pres']
+#         for d_ in d['pill']:
+#             mapping[d_] = pres 
+#     return mapping
+
 def map_pillname_to_presname(pill_pres_map):
     with open(str(pill_pres_map)) as f:
         data = json.load(f)
     mapping = {}
-    for d in data:
-        pres = d['pres']
-        for d_ in d['pill']:
-            mapping[d_] = pres 
+    for d in data.keys():
+        pres = d 
+        for d_ in data[d]:
+            d_save = Path(d_).stem
+            mapping[d_save] = pres 
     return mapping
 
 def read_json_file(jsonfile):
