@@ -20,7 +20,7 @@ class OCRPresciptionEngine():
         image_root, save_root = Path(image_root), Path(save_root)
         if not save_root.exists(): os.makedirs(str(save_root))
 
-        image_paths = [x for x in Path(image_root).rglob('*') if x.suffix in ('.jpg', '.png')]
+        image_paths = [x for x in Path(image_root).rglob('*') if x.suffix in ('.jpg', '.png', '.PNG', '.JPG', '.jpeg', '.JPEG')]
         for image_path in tqdm(image_paths):
             image_name = image_path.stem
             image = cv2.imread(str(image_path))
