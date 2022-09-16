@@ -159,6 +159,8 @@ class ConvertDataToCSV():
                 
                 # save
                 origin_name = json_file.split('.')[0]+ '.jpg'
+                if not Path(os.path.join(pill_image_path, origin_name)).exists():
+                    origin_name = json_file.split('.')[0]+ '.JPG'
                 image = cv2.imread(os.path.join(pill_image_path, origin_name))
                 x1, y1, x2, y2 = int(value['x']), int(value['y']), int(value['x'])+int(value['w']), int(value['y'])+int(value['h'])
                 crop_image = image[y1:y2, x1:x2]
