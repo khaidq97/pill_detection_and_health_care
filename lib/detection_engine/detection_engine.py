@@ -39,7 +39,7 @@ class DetectionEngine(object):
         folder, savefolder = Path(folder),  Path(savefolder)
         if not savefolder.exists(): os.makedirs(str(savefolder))
 
-        imfiles = [x for x in folder.rglob('*') if x.suffix in ('.jpg', '.png')]
+        imfiles = [x for x in folder.rglob('*') if x.suffix in ('.jpg', '.png', '.PNG', '.JPG', '.jpeg', '.JPEG')]
         for imfile in tqdm(imfiles):
             im = cv2.imread(str(imfile))
             bboxes, scores, _ = self.run(im)
